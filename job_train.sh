@@ -1,0 +1,105 @@
+#!/bin/bash
+#SBATCH --job-name=siamese_train       # Job name
+#SBATCH --output=outputs/logs/%x_%j/stdout.out             # Stdout (%x=job-name, %j=job-id)
+#SBATCH --error=outputs/logs/%x_%j/stderr.err              # Stderr
+#SBATCH --partition=P100               # GPU partition (e.g., A100, V100, P100)
+#SBATCH --gres=gpu:1                   # Request 1 GPU
+#SBATCH --cpus-per-task=8              # CPU cores per task
+#SBATCH --mem=10G                      # System RAM
+#SBATCH --time=24:00:00                # Walltime (hh:mm:ss)
+
+set -euo pipefail
+
+echo "===== SLURM context ====="
+echo "Node: $(hostname)"
+echo "SLURM_JOB_ID: ${SLURM_JOB_ID:-}"
+echo "SLURM_JOB_NAME: ${SLURM_JOB_NAME:-}"
+echo "SLURM_CPUS_PER_TASK: ${SLURM_CPUS_PER_TASK:-}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-}"
+echo "Started at: $(date)"
+echo "========================="
+
+# Ensure relative paths resolve from submit directory
+cd "${SLURM_SUBMIT_DIR:-.}"
+
+# Configuration (override by exporting env vars before sbatch)
+# Example: OBJECTIVE=triplet EPOCHS=50 BATCH_SIZE=64 LR=3e-4 sbatch job_train.sh
+OBJECTIVE="${OBJECTIVE:-contrastive}"   # contrastive | triplet
+ROOT_DIR="${ROOT_DIR:-.}"
+
+# Choose default CSV based on objective if not provided
+if [ -z "${CSV:-}" ]; then
+  if [ "$OBJECTIVE" = "contrastive" ]; then
+    CSV="csv/tampar_pairs_ssl.csv"
+  else
+    CSV="csv/tampar_triplets_ssl.csv"
+  fi
+fi
+
+EPOCHS="${EPOCHS:-50}"
+BATCH_SIZE="${BATCH_SIZE:-32}"
+LR="${LR:-1e-4}"
+WEIGHT_DECAY="${WEIGHT_DECAY:-1e-4}"
+EMBED_DIM="${EMBED_DIM:-256}"
+DISTANCE="${DISTANCE:-cosine}"          # cosine | euclidean
+MARGIN="${MARGIN:-1.0}"
+IM_SIZE="${IM_SIZE:-256}"
+PIN_MEMORY="${PIN_MEMORY:-1}"           # 1=True, 0=False
+PRETRAINED="${PRETRAINED:-1}"           # 1=True, 0=False
+NUM_WORKERS="${NUM_WORKERS:-}"          # optional manual override; otherwise auto from SLURM
+
+# Outputs
+OUT_DIR="${OUT_DIR:-outputs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}}"
+mkdir -p "$OUT_DIR"
+SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
+
+# Activate conda environment if provided
+if [ -n "${CONDA_ENV:-}" ]; then
+  if [ -f "${HOME}/anaconda3/etc/profile.d/conda.sh" ]; then
+    source "${HOME}/anaconda3/etc/profile.d/conda.sh"
+  elif [ -f "${HOME}/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "${HOME}/miniconda3/etc/profile.d/conda.sh"
+  fi
+  conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env '$CONDA_ENV', proceeding with system python"
+fi
+
+# Diagnostics
+nvidia-smi || true
+python -V || true
+
+# Avoid CPU oversubscription in dataloaders and BLAS
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
+
+# Build argument list for scripts/train.py
+ARGS=()
+ARGS+=(--objective "$OBJECTIVE")
+
+# --csv supports multiple files (nargs '+'): split CSV on whitespace
+for csv_path in $CSV; do
+  ARGS+=(--csv "$csv_path")
+done
+
+ARGS+=(--root_dir "$ROOT_DIR")
+ARGS+=(--epochs "$EPOCHS")
+ARGS+=(--batch_size "$BATCH_SIZE")
+ARGS+=(--lr "$LR")
+ARGS+=(--weight_decay "$WEIGHT_DECAY")
+ARGS+=(--embed_dim "$EMBED_DIM")
+ARGS+=(--distance "$DISTANCE")
+ARGS+=(--margin "$MARGIN")
+ARGS+=(--im_size "$IM_SIZE")
+ARGS+=(--pin_memory "$PIN_MEMORY")
+ARGS+=(--pretrained "$PRETRAINED")
+ARGS+=(--save_path "$SAVE_PATH")
+ARGS+=(--sbatch 1)
+
+# Allow manual override of num_workers if explicitly provided
+if [ -n "$NUM_WORKERS" ]; then
+  ARGS+=(--num_workers "$NUM_WORKERS")
+fi
+
+echo "Running: scripts/train.py with args: ${ARGS[*]}"
+srun python -u -m scripts.train "${ARGS[@]}"
+
+echo "Job finished at: $(date)"
+echo "Model saved to: $SAVE_PATH"

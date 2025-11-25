@@ -3,11 +3,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from typing import List
 
 import torch
 from torch.utils.data import DataLoader
-import yaml
 
 from prim_package import (
     PairImageDataset,
@@ -29,7 +27,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--objective", choices=["contrastive", "triplet"], default="contrastive")
     p.add_argument("--csv", nargs="+", required=True, help="One or more CSV paths")
     p.add_argument("--root_dir", default="", help="Optional root prefix to prepend to relative paths in CSV")
-    p.add_argument("--config", default=None, help="Optional YAML config path to override defaults")
     p.add_argument("--embed_dim", type=int, default=256)
     p.add_argument("--pretrained", type=int, default=1, help="1=True, 0=False for encoder pretrained weights")
     p.add_argument("--distance", choices=["cosine", "euclidean"], default="cosine")
@@ -42,23 +39,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num_workers", type=int, default=0)
     p.add_argument("--pin_memory", type=int, default=1)
     p.add_argument("--save_path", default="siamese.pt", help="Where to save the trained model")
+    p.add_argument("--sbatch", type=int, default=0, help="1=True, 0=False for sbatch configuration")
     return p.parse_args()
-
-
-def maybe_override_from_yaml(args: argparse.Namespace) -> argparse.Namespace:
-    if args.config and os.path.isfile(args.config):
-        with open(args.config, "r") as f:
-            cfg = yaml.safe_load(f) or {}
-        # Only override keys present in args
-        for k, v in cfg.items():
-            if hasattr(args, k):
-                setattr(args, k, v)
-    return args
 
 
 def main():
     args = parse_args()
-    args = maybe_override_from_yaml(args)
+
+    if bool(args.sbatch):
+        args.num_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", args.num_workers))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(42)
