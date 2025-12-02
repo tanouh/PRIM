@@ -24,7 +24,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 
 # Configuration (override by exporting env vars before sbatch)
 # Example: OBJECTIVE=triplet EPOCHS=50 BATCH_SIZE=64 LR=3e-4 sbatch job_train.sh
-OBJECTIVE="${OBJECTIVE:-triplet}"   # contrastive | triplet
+OBJECTIVE="${OBJECTIVE:-contrastive}"   # contrastive | triplet
 ROOT_DIR="${ROOT_DIR:-.}"
 
 # Choose default CSV based on objective if not provided
@@ -51,7 +51,7 @@ NUM_WORKERS="${NUM_WORKERS:-}"          # optional manual override; otherwise au
 # Outputs
 OUT_DIR="${OUT_DIR:-outputs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}}"
 mkdir -p "$OUT_DIR"
-SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
+SAVE_PATH="${SAVE_PATH:-$OUT_DIR/contrastive_siamese.pt}"
 
 # Validation outputs (for contrastive objective)
 # Can be overridden via environment variables:
@@ -59,17 +59,6 @@ SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
 #   VAL_THRESHOLD=0.5
 VAL_PAIRS_CSV_OUT="${VAL_PAIRS_CSV_OUT:-$OUT_DIR/val_pair_predictions.csv}"
 VAL_THRESHOLD="${VAL_THRESHOLD:-}"
-
-# Validation outputs (for triplet objective)
-# Can be overridden via environment variables:
-#   VAL_TRIPLETS_CSV_OUT=/path/to/file.csv
-#   VAL_AP_THRESHOLD=0.5
-#   VAL_AN_THRESHOLD=0.5
-#   VAL_DELTA_THRESHOLD=0.2
-VAL_TRIPLETS_CSV_OUT="${VAL_TRIPLETS_CSV_OUT:-$OUT_DIR/val_triplets_predictions.csv}"
-VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-}"
-VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
-VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 
 # Activate conda environment (default to 'cuda116' if CONDA_ENV not set)
 CONDA_ENV="${CONDA_ENV:-cuda116}"
@@ -129,20 +118,6 @@ if [ -n "$VAL_PAIRS_CSV_OUT" ]; then
 fi
 if [ -n "$VAL_THRESHOLD" ]; then
   ARGS+=(--val_threshold "$VAL_THRESHOLD")
-fi
-
-# Validation logging (triplet only; harmless if unused)
-if [ -n "$VAL_TRIPLETS_CSV_OUT" ]; then
-  ARGS+=(--val_triplets_csv_out "$VAL_TRIPLETS_CSV_OUT")
-fi
-if [ -n "$VAL_AP_THRESHOLD" ]; then
-  ARGS+=(--val_ap_threshold "$VAL_AP_THRESHOLD")
-fi
-if [ -n "$VAL_AN_THRESHOLD" ]; then
-  ARGS+=(--val_an_threshold "$VAL_AN_THRESHOLD")
-fi
-if [ -n "$VAL_DELTA_THRESHOLD" ]; then
-  ARGS+=(--val_delta_threshold "$VAL_DELTA_THRESHOLD")
 fi
 
 # Allow manual override of num_workers if explicitly provided
