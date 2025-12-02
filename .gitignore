@@ -10,5 +10,4 @@ outputs/
 *envdev/
 
 # Python cache folders
-*__pycache__
-*.pyc
+*__pycache__/
