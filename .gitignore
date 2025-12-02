@@ -1,5 +1,14 @@
-*vscode
+# IDE folders
+*vscode/
+*idea/
+
+# Data folders
 data/
-*envdev/
 outputs/
-__pycache__/
+
+# Environment folders
+*envdev/
+
+# Python cache folders
+*__pycache__
+*.pyc
