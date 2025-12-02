@@ -1,4 +1,4 @@
-split,anchor,same,different
+split,path_anchor,positive_path,negative_path
 train,data/TAMPAR/test/carpet/id_01_20230523_155234.jpg,data/TAMPAR/test/carpet/id_01_20230523_155255.jpg,data/TAMPAR/test/base/id_18_20230523_171737.jpg
 train,data/TAMPAR/test/carpet/id_03_20230523_155640.jpg,data/TAMPAR/test/carpet/id_03_20230523_155646.jpg,data/TAMPAR/test/base/id_18_20230523_171744.jpg
 train,data/TAMPAR/test/carpet/id_03_20230523_155640.jpg,data/TAMPAR/test/carpet/id_03_20230523_155707.jpg,data/TAMPAR/test/floor/id_29_20230523_191825.jpg

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=siamese_train       # Job name
-#SBATCH --output=outputs/logs/%x_%j/stdout.out             # Stdout (%x=job-name, %j=job-id)
-#SBATCH --error=outputs/logs/%x_%j/stderr.err              # Stderr
+#SBATCH --output=outputs/%x_%j/log/stdout.out             # Stdout (%x=job-name, %j=job-id)
+#SBATCH --error=outputs/%x_%j/log/stderr.err              # Stderr
 #SBATCH --partition=P100               # GPU partition (e.g., A100, V100, P100)
 #SBATCH --gres=gpu:1                   # Request 1 GPU
 #SBATCH --cpus-per-task=8              # CPU cores per task
@@ -24,7 +24,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 
 # Configuration (override by exporting env vars before sbatch)
 # Example: OBJECTIVE=triplet EPOCHS=50 BATCH_SIZE=64 LR=3e-4 sbatch job_train.sh
-OBJECTIVE="${OBJECTIVE:-contrastive}"   # contrastive | triplet
+OBJECTIVE="${OBJECTIVE:-triplet}"   # contrastive | triplet
 ROOT_DIR="${ROOT_DIR:-.}"
 
 # Choose default CSV based on objective if not provided
@@ -36,7 +36,7 @@ if [ -z "${CSV:-}" ]; then
   fi
 fi
 
-EPOCHS="${EPOCHS:-50}"
+EPOCHS="${EPOCHS:-10}"
 BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-1e-4}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-1e-4}"
@@ -53,14 +53,44 @@ OUT_DIR="${OUT_DIR:-outputs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}}"
 mkdir -p "$OUT_DIR"
 SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
 
-# Activate conda environment if provided
-if [ -n "${CONDA_ENV:-}" ]; then
-  if [ -f "${HOME}/anaconda3/etc/profile.d/conda.sh" ]; then
-    source "${HOME}/anaconda3/etc/profile.d/conda.sh"
-  elif [ -f "${HOME}/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "${HOME}/miniconda3/etc/profile.d/conda.sh"
+# Validation outputs (for contrastive objective)
+# Can be overridden via environment variables:
+#   VAL_PAIRS_CSV_OUT=/path/to/file.csv
+#   VAL_THRESHOLD=0.5
+VAL_PAIRS_CSV_OUT="${VAL_PAIRS_CSV_OUT:-$OUT_DIR/val_pair_predictions.csv}"
+VAL_THRESHOLD="${VAL_THRESHOLD:-}"
+
+# Validation outputs (for triplet objective)
+# Can be overridden via environment variables:
+#   VAL_TRIPLETS_CSV_OUT=/path/to/file.csv
+#   VAL_AP_THRESHOLD=0.5
+#   VAL_AN_THRESHOLD=0.5
+#   VAL_DELTA_THRESHOLD=0.2
+VAL_TRIPLETS_CSV_OUT="${VAL_TRIPLETS_CSV_OUT:-$OUT_DIR/val_triplets_predictions.csv}"
+VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-}"
+VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
+VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
+
+# Activate conda environment (default to 'cuda116' if CONDA_ENV not set)
+CONDA_ENV="${CONDA_ENV:-cuda116}"
+
+if [ -n "$CONDA_ENV" ]; then
+  # Try common conda init paths
+  for script in \
+    "${HOME}/anaconda3/etc/profile.d/conda.sh" \
+    "${HOME}/miniconda3/etc/profile.d/conda.sh" \
+    "/opt/conda/etc/profile.d/conda.sh"; do
+    if [ -f "$script" ]; then
+      source "$script"
+      break
+    fi
+  done
+
+  if command -v conda >/dev/null 2>&1; then
+    conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env '$CONDA_ENV', proceeding with system python"
+  else
+    echo "[WARN] conda not found; cannot activate env '$CONDA_ENV'"
   fi
-  conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env '$CONDA_ENV', proceeding with system python"
 fi
 
 # Diagnostics
@@ -92,6 +122,28 @@ ARGS+=(--pin_memory "$PIN_MEMORY")
 ARGS+=(--pretrained "$PRETRAINED")
 ARGS+=(--save_path "$SAVE_PATH")
 ARGS+=(--sbatch 1)
+
+# Validation logging (contrastive only; harmless if unused)
+if [ -n "$VAL_PAIRS_CSV_OUT" ]; then
+  ARGS+=(--val_pairs_csv_out "$VAL_PAIRS_CSV_OUT")
+fi
+if [ -n "$VAL_THRESHOLD" ]; then
+  ARGS+=(--val_threshold "$VAL_THRESHOLD")
+fi
+
+# Validation logging (triplet only; harmless if unused)
+if [ -n "$VAL_TRIPLETS_CSV_OUT" ]; then
+  ARGS+=(--val_triplets_csv_out "$VAL_TRIPLETS_CSV_OUT")
+fi
+if [ -n "$VAL_AP_THRESHOLD" ]; then
+  ARGS+=(--val_ap_threshold "$VAL_AP_THRESHOLD")
+fi
+if [ -n "$VAL_AN_THRESHOLD" ]; then
+  ARGS+=(--val_an_threshold "$VAL_AN_THRESHOLD")
+fi
+if [ -n "$VAL_DELTA_THRESHOLD" ]; then
+  ARGS+=(--val_delta_threshold "$VAL_DELTA_THRESHOLD")
+fi
 
 # Allow manual override of num_workers if explicitly provided
 if [ -n "$NUM_WORKERS" ]; then

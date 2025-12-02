@@ -24,10 +24,11 @@ class PairImageDataset(Dataset):
       - Returns (img1, img2, y) with y in {0.0, 1.0}.
     """
 
-    def __init__(self, df: pd.DataFrame, root_dir: str = "", transform=None):
+    def __init__(self, df: pd.DataFrame, root_dir: str = "", transform=None, return_paths: bool = False):
         self.df = df.reset_index(drop=True)
         self.root_dir = root_dir
         self.transform = transform
+        self.return_paths = return_paths
 
     def __len__(self) -> int:
         return len(self.df)
@@ -64,7 +65,10 @@ class PairImageDataset(Dataset):
         else:
             y_val = 1.0
 
-        return img1, img2, torch.tensor(y_val, dtype=torch.float32)
+        y = torch.tensor(y_val, dtype=torch.float32)
+        if self.return_paths:
+            return img1, img2, y, p1, p2
+        return img1, img2, y
 
 
 class TripletImageDataset(Dataset):
@@ -81,10 +85,11 @@ class TripletImageDataset(Dataset):
       - (anchor, positive, negative) tensors
     """
 
-    def __init__(self, df: pd.DataFrame, root_dir: str = "", transform=None):
+    def __init__(self, df: pd.DataFrame, root_dir: str = "", transform=None, return_paths: bool = False):
         self.df = df.reset_index(drop=True)
         self.root_dir = root_dir
         self.transform = transform
+        self.return_paths = return_paths
 
     def __len__(self) -> int:
         return len(self.df)
@@ -115,6 +120,8 @@ class TripletImageDataset(Dataset):
             p = self.transform(p)
             n = self.transform(n)
 
+        if self.return_paths:
+            return a, p, n, a_path, p_path, n_path
         return a, p, n
 
 

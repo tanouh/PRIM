@@ -40,6 +40,42 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--pin_memory", type=int, default=1)
     p.add_argument("--save_path", default="siamese.pt", help="Where to save the trained model")
     p.add_argument("--sbatch", type=int, default=0, help="1=True, 0=False for sbatch configuration")
+    # Validation logging (contrastive only)
+    p.add_argument(
+        "--val_pairs_csv_out",
+        default="",
+        help="Optional path to save per-pair validation predictions (contrastive only)",
+    )
+    p.add_argument(
+        "--val_threshold",
+        type=float,
+        default=None,
+        help="Optional threshold for decision (distance < threshold => similar)",
+    )
+    # Validation logging (triplet only)
+    p.add_argument(
+        "--val_triplets_csv_out",
+        default="",
+        help="Optional path to save per-triplet validation logs (triplet only)",
+    )
+    p.add_argument(
+        "--val_ap_threshold",
+        type=float,
+        default=None,
+        help="Optional threshold: d(a,p) < val_ap_threshold => anchor~pos similar",
+    )
+    p.add_argument(
+        "--val_an_threshold",
+        type=float,
+        default=None,
+        help="Optional threshold: d(a,n) > val_an_threshold => anchor~neg dissimilar",
+    )
+    p.add_argument(
+        "--val_delta_threshold",
+        type=float,
+        default=None,
+        help="Optional threshold on delta=d(a,n)-d(a,p): delta > val_delta_threshold => correct ordering",
+    )
     return p.parse_args()
 
 
@@ -65,7 +101,12 @@ def main():
             val_df = get_split(df_all, "validation")
 
         train_ds = PairImageDataset(train_df, root_dir=args.root_dir, transform=train_tf)
-        val_ds = PairImageDataset(val_df, root_dir=args.root_dir, transform=eval_tf)
+        val_ds = PairImageDataset(
+            val_df,
+            root_dir=args.root_dir,
+            transform=eval_tf,
+            return_paths=bool(args.val_pairs_csv_out),
+        )
 
         train_loader = DataLoader(
             train_ds,
@@ -90,7 +131,12 @@ def main():
             val_df = get_split(df_all, "validation")
 
         train_ds = TripletImageDataset(train_df, root_dir=args.root_dir, transform=train_tf)
-        val_ds = TripletImageDataset(val_df, root_dir=args.root_dir, transform=eval_tf)
+        val_ds = TripletImageDataset(
+            val_df,
+            root_dir=args.root_dir,
+            transform=eval_tf,
+            return_paths=bool(args.val_triplets_csv_out),
+        )
 
         train_loader = DataLoader(
             train_ds,
@@ -118,7 +164,14 @@ def main():
             train_loss = train_contrastive(
                 model, train_loader, optimizer, device, margin=args.margin, distance=args.distance
             )
-            val_stats = validate_contrastive(model, val_loader, device, distance=args.distance)
+            val_stats = validate_contrastive(
+                model,
+                val_loader,
+                device,
+                distance=args.distance,
+                save_csv_path=(args.val_pairs_csv_out if args.val_pairs_csv_out else None),
+                threshold=args.val_threshold,
+            )
             print(
                 f"Epoch {ep+1}/{args.epochs} | "
                 f"train_loss={train_loss:.4f} | "
@@ -130,7 +183,16 @@ def main():
             train_loss = train_triplet(
                 model, train_loader, optimizer, device, margin=args.margin, distance=args.distance
             )
-            val_stats = validate_triplet(model, val_loader, device, distance=args.distance)
+            val_stats = validate_triplet(
+                model,
+                val_loader,
+                device,
+                distance=args.distance,
+                save_csv_path=(args.val_triplets_csv_out if args.val_triplets_csv_out else None),
+                ap_threshold=args.val_ap_threshold,
+                an_threshold=args.val_an_threshold,
+                delta_threshold=args.val_delta_threshold,
+            )
             print(
                 f"Epoch {ep+1}/{args.epochs} | "
                 f"train_loss={train_loss:.4f} | "
