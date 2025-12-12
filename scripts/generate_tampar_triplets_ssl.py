@@ -133,7 +133,7 @@ def main():
     OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_CSV.open('w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['split', 'anchor', 'same', 'different'])
+        writer.writerow(['split', 'path_anchor', 'positive_path', 'negative_path'])
         for split_name, anchor, positive, negative in rows:
             writer.writerow([split_name, anchor, positive, negative])
 
