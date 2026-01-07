@@ -36,7 +36,7 @@ if [ -z "${CSV:-}" ]; then
   fi
 fi
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_669423/siamese.pt}"   # required; override this
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701317/siamese.pt}"   # required; override this
 BATCH_SIZE="${BATCH_SIZE:-32}"
 IM_SIZE="${IM_SIZE:-256}"
 PIN_MEMORY="${PIN_MEMORY:-1}"
@@ -58,7 +58,7 @@ VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
 VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 
 # Conda environment (optional)
-CONDA_ENV="${CONDA_ENV:-cuda116}"
+CONDA_ENV="${CONDA_ENV:-cuda118}"
 if [ -n "$CONDA_ENV" ]; then
   for script in \
     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
