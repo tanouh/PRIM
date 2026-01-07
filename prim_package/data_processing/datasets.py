@@ -7,6 +7,46 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from PIL import Image
+from pathlib import Path
+
+
+class SingleImageDataset(Dataset):
+    """
+    Dataset for single-image inference (gallery / query).
+    Returns:
+        image, label, image_path
+    """
+
+    def __init__(
+        self,
+        df,
+        root_dir: str = "",
+        transform=None,
+        return_paths: bool = True,
+    ):
+        self.df = df.reset_index(drop=True)
+        self.root_dir = Path(root_dir)
+        self.transform = transform
+        self.return_paths = return_paths
+
+    def __len__(self) -> int:
+        return len(self.df)
+
+    def __getitem__(self, idx: int):
+        row = self.df.iloc[idx]
+
+        img_path = self.root_dir / row["image_path"]
+        label = row["label"]
+
+        image = Image.open(img_path).convert("RGB")
+
+        if self.transform is not None:
+            image = self.transform(image)
+
+        if self.return_paths:
+            return image, label, str(img_path)
+
+        return image, label
 
 
 class PairImageDataset(Dataset):

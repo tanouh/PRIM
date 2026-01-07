@@ -36,7 +36,7 @@ if [ -z "${CSV:-}" ]; then
   fi
 fi
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701317/siamese.pt}"   # required; override this
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701441/siamese.pt}"   # required; override this
 BATCH_SIZE="${BATCH_SIZE:-32}"
 IM_SIZE="${IM_SIZE:-256}"
 PIN_MEMORY="${PIN_MEMORY:-1}"
