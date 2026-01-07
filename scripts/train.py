@@ -8,12 +8,12 @@ import torch
 from torch.utils.data import DataLoader
 
 from prim_package import (
-    PairImageDataset,
-    TripletImageDataset,
+    PairImageDatasetMultimodal,
+    TripletImageDatasetMultimodal,
     load_pair_dfs,
     load_triplet_dfs,
     get_split,
-    SiameseNet,
+    MultimodalSiameseNet,
     train_contrastive,
     validate_contrastive,
     train_triplet,
@@ -40,6 +40,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--pin_memory", type=int, default=1)
     p.add_argument("--save_path", default="siamese.pt", help="Where to save the trained model")
     p.add_argument("--sbatch", type=int, default=0, help="1=True, 0=False for sbatch configuration")
+    
+    # --- NEW ARGUMENTS FOR TEXT ---
+    p.add_argument("--tokenizer", default="distilbert-base-uncased", help="HuggingFace model name for text")
+    p.add_argument("--max_seq_len", type=int, default=64, help="Max text sequence length")
+
     # Validation logging (contrastive only)
     p.add_argument(
         "--val_pairs_csv_out",
@@ -82,6 +87,9 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
+    # Prevent tokenizer warnings in DataLoader subprocesses
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     if bool(args.sbatch):
         args.num_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", args.num_workers))
 
@@ -100,12 +108,21 @@ def main():
         if len(val_df) == 0:
             val_df = get_split(df_all, "validation")
 
-        train_ds = PairImageDataset(train_df, root_dir=args.root_dir, transform=train_tf)
-        val_ds = PairImageDataset(
+        # --- UPDATED DATASET INIT ---
+        train_ds = PairImageDatasetMultimodal(
+            train_df, 
+            root_dir=args.root_dir, 
+            transform=train_tf,
+            tokenizer_name=args.tokenizer,   # <--- Pass arg
+            max_seq_length=args.max_seq_len  # <--- Pass arg
+        )
+        val_ds = PairImageDatasetMultimodal(
             val_df,
             root_dir=args.root_dir,
             transform=eval_tf,
             return_paths=bool(args.val_pairs_csv_out),
+            tokenizer_name=args.tokenizer,   # <--- Pass arg
+            max_seq_length=args.max_seq_len  # <--- Pass arg
         )
 
         train_loader = DataLoader(
@@ -130,12 +147,21 @@ def main():
         if len(val_df) == 0:
             val_df = get_split(df_all, "validation")
 
-        train_ds = TripletImageDataset(train_df, root_dir=args.root_dir, transform=train_tf)
-        val_ds = TripletImageDataset(
+        # --- UPDATED DATASET INIT ---
+        train_ds = TripletImageDatasetMultimodal(
+            train_df, 
+            root_dir=args.root_dir, 
+            transform=train_tf,
+            tokenizer_name=args.tokenizer,   # <--- Pass arg
+            max_seq_length=args.max_seq_len  # <--- Pass arg
+        )
+        val_ds = TripletImageDatasetMultimodal(
             val_df,
             root_dir=args.root_dir,
             transform=eval_tf,
             return_paths=bool(args.val_triplets_csv_out),
+            tokenizer_name=args.tokenizer,   # <--- Pass arg
+            max_seq_length=args.max_seq_len  # <--- Pass arg
         )
 
         train_loader = DataLoader(
@@ -153,8 +179,13 @@ def main():
             pin_memory=bool(args.pin_memory),
         )
 
-    # Model and optimizer
-    model = SiameseNet(embed_dim=args.embed_dim, pretrained=bool(args.pretrained)).to(device)
+    # --- UPDATED MODEL INIT ---
+    print(f"Initializing Multimodal Model with text backbone: {args.tokenizer}")
+    model = MultimodalSiameseNet(
+        embed_dim=args.embed_dim, 
+        pretrained=bool(args.pretrained)
+    ).to(device)
+    
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     # Training loop

@@ -71,16 +71,30 @@ def validate_contrastive(
     have_paths = False  # will switch to True if the loader provides paths
 
     for batch in loader:
-        # Support (img1, img2, y) or (img1, img2, y, p1, p2) where p1/p2 are lists of paths
-        if isinstance(batch, (list, tuple)) and len(batch) == 5:
-            img1, img2, y, p1_list, p2_list = batch
+        # Check batch length to see if paths are included
+        # PairImageDataset returns:
+        #   Length 7: (img1, txt1, img2, txt2, y, p1, p2)
+        #   Length 5: (img1, txt1, img2, txt2, y)
+        
+        if len(batch) == 7:
+            img1, txt1, img2, txt2, y, p1_list, p2_list = batch
             have_paths = True
         else:
-            img1, img2, y = batch
+            img1, txt1, img2, txt2, y = batch
             p1_list, p2_list = None, None
 
+        # Move images and labels to device
         img1, img2 = img1.to(device), img2.to(device)
-        z1, z2 = model(img1, img2)
+        
+        # Move text dictionaries to device
+        txt1 = {k: v.to(device) for k, v in txt1.items()}
+        txt2 = {k: v.to(device) for k, v in txt2.items()}
+
+        # Forward pass with multimodal inputs
+        # The model expects: forward(img1, txt1_dict, img2, txt2_dict)
+        z1, z2 = model(img1, txt1, img2, txt2)
+
+
         d = pairwise_distance(z1, z2, mode=distance).cpu()  # shape (B,)
 
         # y is typically a 1D tensor length B
@@ -209,20 +223,28 @@ def validate_triplet(
     have_paths = False
 
     for batch in loader:
-        # Support (a,p,n) or (a,p,n,a_path,p_path,n_path)
-        if isinstance(batch, (list, tuple)) and len(batch) == 6:
-            a, p, n, a_paths, p_paths, n_paths = batch
+        # Check if we have paths (Length 9) or just data (Length 6)
+        if len(batch) == 9:
+            a_img, a_txt, p_img, p_txt, n_img, n_txt, a_paths, p_paths, n_paths = batch
             have_paths = True
         else:
-            a, p, n = batch
+            a_img, a_txt, p_img, p_txt, n_img, n_txt = batch
             a_paths = p_paths = n_paths = None
 
-        a, p, n = a.to(device), p.to(device), n.to(device)
+        # Move to device
+        a_img, p_img, n_img = a_img.to(device), p_img.to(device), n_img.to(device)
+        
+        def to_device(d): 
+            return {k: v.to(device) for k, v in d.items()}
+            
+        a_txt = to_device(a_txt)
+        p_txt = to_device(p_txt)
+        n_txt = to_device(n_txt)
 
-        za = model.forward_once(a)
-        zp = model.forward_once(p)
-        zn = model.forward_once(n)
-
+        # Forward
+        za = model.forward_once(a_img, a_txt['input_ids'], a_txt['attention_mask'])
+        zp = model.forward_once(p_img, p_txt['input_ids'], p_txt['attention_mask'])
+        zn = model.forward_once(n_img, n_txt['input_ids'], n_txt['attention_mask'])
         d_ap = pairwise_distance(za, zp, mode=distance).cpu().tolist()
         d_an = pairwise_distance(za, zn, mode=distance).cpu().tolist()
 
@@ -290,3 +312,88 @@ def validate_triplet(
             writer.writerows(buffer_rows)
 
     return {"ap_mean": ap_mean, "an_mean": an_mean}
+
+
+def train_contrastive_multimodal(
+    model,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    margin: float = 1.0,
+    distance: str = "cosine",
+) -> float:
+    """
+    Train one epoch with contrastive loss.
+    """
+    model.train()
+    criterion = ContrastiveLoss(margin=margin, distance=distance)
+    total_loss = 0.0
+
+    for img1, txt1, img2, txt2, y in loader:
+        img1, img2, y = img1.to(device), img2.to(device), y.to(device)
+        
+        # Move text dicts to device
+        txt1 = {k: v.to(device) for k, v in txt1.items()}
+        txt2 = {k: v.to(device) for k, v in txt2.items()}
+
+        z1, z2 = model(img1, txt1, img2, txt2)
+        loss = criterion(z1, z2, y)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * img1.size(0)
+
+    return total_loss / max(1, len(loader.dataset))
+
+
+def train_triplet_multimodal(
+    model,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    margin: float = 0.3,
+    distance: str = "cosine",
+) -> float:
+    """
+    Train one epoch with triplet loss (multimodal)
+    """
+    model.train()
+    criterion = TripletLoss(margin=margin, distance=distance)
+    total_loss = 0.0
+
+    # Loader now yields 6 items: (img_a, txt_a, img_p, txt_p, img_n, txt_n)
+    for batch in loader:
+        # Unpack the batch
+        a_img, a_txt, p_img, p_txt, n_img, n_txt = batch
+
+        # Move images to device
+        a_img = a_img.to(device)
+        p_img = p_img.to(device)
+        n_img = n_img.to(device)
+
+        # Move text dictionaries to device
+        # Helper to move dict of tensors to device
+        def to_device(d):
+            return {k: v.to(device) for k, v in d.items()}
+
+        a_txt = to_device(a_txt)
+        p_txt = to_device(p_txt)
+        n_txt = to_device(n_txt)
+
+        # Forward pass (Reuse shared encoder)
+        # We pass input_ids and attention_mask from the dictionary
+        za = model.forward_once(a_img, a_txt['input_ids'], a_txt['attention_mask'])
+        zp = model.forward_once(p_img, p_txt['input_ids'], p_txt['attention_mask'])
+        zn = model.forward_once(n_img, n_txt['input_ids'], n_txt['attention_mask'])
+
+        loss = criterion(za, zp, zn)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item() * a_img.size(0)
+
+    return total_loss / max(1, len(loader.dataset))
