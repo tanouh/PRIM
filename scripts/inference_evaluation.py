@@ -69,10 +69,10 @@ def evaluate_one_to_many(
     correct = 0
 
     for i in range(len(query_embs)):
-        q = query_embs[i].unsqueeze(0).expand_as(gallery_embs)
+        q = query_embs[i].unsqueeze(0).expand_as(gallery_embs)  # expand to the same dimensions
         dists = pairwise_distance(q, gallery_embs, mode=distance)
 
-        nn_idx = torch.argmin(dists).item()
+        nn_idx = torch.argmin(dists).item()  # get nearest neighbor index
         pred_label = gallery_labels[nn_idx]
 
         if pred_label == query_labels[i]:
@@ -91,7 +91,7 @@ def main():
     tf = get_eval_transforms(im_size=args.im_size)
 
     # Load dataframe
-    df = load_single_df(args.csv)
+    df = load_single_df([args.csv])
 
     gallery_df = get_split(df, "gallery")
     query_df = get_split(df, "query")
