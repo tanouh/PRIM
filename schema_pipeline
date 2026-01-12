@@ -1,7 +1,0 @@
-Photo brute → Détection coins (TAMPAR) → UV maps (faces aplaties)
-        ↓                                      ↓
-   Siamese Network (identité)          Change detection (tampering)
-        ↓                                      ↓
-   Same Parcel Score                   Tampering Score
-        ↓                                      ↓
-                Fusion + Calibration → Décision finale
