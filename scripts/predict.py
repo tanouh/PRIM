@@ -48,7 +48,7 @@ def main():
 
     # Load model
     model = SiameseNet(embed_dim=args.embed_dim)
-    model.load_state_dict(torch.load(args.model_path, map_location=device))
+    model.load_state_dict(torch.load(args.model_path, map_location=device, weights_only=True))
     model.to(device)
     model.eval()
 
