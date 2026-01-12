@@ -215,7 +215,7 @@ def main():
     if not os.path.exists(args.model_path):
         raise FileNotFoundError(f"Model path not found: {args.model_path}")
 
-    state = torch.load(args.model_path, map_location=device)
+    state = torch.load(args.model_path, map_location=device, weights_only=True)
     # state might be a full checkpoint or just state_dict
     if isinstance(state, dict) and all(k.startswith("module.") for k in state.keys()):
         # possibly saved from DataParallel; try to load directly
