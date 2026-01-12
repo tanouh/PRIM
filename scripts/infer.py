@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from typing import Optional
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -30,7 +31,9 @@ def parse_args():
     p.add_argument("--distance", choices=["cosine", "euclidean"], default="cosine")
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--im_size", type=int, default=256)
+    p.add_argument("--out", type=str, required=True, help="Output directory for results")
     p.add_argument("--threshold", type=float, default=None, help="Optional verification threshold")
+    
     return p.parse_args()
 
 
@@ -61,7 +64,7 @@ def evaluate_one_to_many(
     query_labels,
     gallery_embs,
     gallery_labels,
-    distance="cosine",
+    distance="cosine"
 ):
     correct = 0
 

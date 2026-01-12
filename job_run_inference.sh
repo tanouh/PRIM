@@ -28,7 +28,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 ROOT_DIR="${ROOT_DIR:-data}"
 CSV="${CSV:-csv/gallery_query.csv}"
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_xxxxx/siamese.pt}"
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_669423/siamese.pt}"
 EMBED_DIM="${EMBED_DIM:-256}"
 DISTANCE="${DISTANCE:-cosine}"
 
@@ -90,12 +90,9 @@ ARGS+=(--embed_dim "$EMBED_DIM")
 ARGS+=(--distance "$DISTANCE")
 ARGS+=(--batch_size "$BATCH_SIZE")
 ARGS+=(--im_size "$IM_SIZE")
-ARGS+=(--pin_memory "$PIN_MEMORY")
-ARGS+=(--pretrained "$PRETRAINED")
-ARGS+=(--topk "$TOPK")
-
-ARGS+=(--out_csv "$OUT_CSV")
-ARGS+=(--out_embeddings_dir "$OUT_EMB_DIR")
+ARGS+=(--out "$OUT_DIR")
+# ARGS+=(--out_csv "$OUT_CSV")
+# ARGS+=(--out_embeddings_dir "$OUT_EMB_DIR")
 
 if [ -n "$NUM_WORKERS" ]; then
   ARGS+=(--num_workers "$NUM_WORKERS")

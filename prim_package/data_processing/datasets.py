@@ -165,6 +165,18 @@ class TripletImageDataset(Dataset):
         return a, p, n
 
 
+
+def load_single_df(csv_paths: List[str]) -> pd.DataFrame:
+    """Load and concatenate CSVs for single-image inference."""
+    dfs = [pd.read_csv(p) for p in csv_paths]
+    df_all = pd.concat(dfs, ignore_index=True)
+    if 'split' in df_all.columns:
+        df_all['split'] = df_all['split'].astype(str).str.lower()
+    else:
+        df_all['split'] = 'gallery'
+    return df_all
+
+
 def load_pair_dfs(csv_paths: List[str]) -> pd.DataFrame:
     """Load and concatenate CSVs for pair training."""
     dfs = [pd.read_csv(p) for p in csv_paths]
