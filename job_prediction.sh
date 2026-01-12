@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=siamese_infer
+#SBATCH --job-name=siamese_predict
 #SBATCH --output=outputs/%x_%j/log/stdout.out
 #SBATCH --error=outputs/%x_%j/log/stderr.err
 #SBATCH --partition=P100
@@ -113,6 +113,6 @@ echo "  python -m scripts.predict ${ARGS[*]}"
 # --------------------------------------------------
 srun python -u -m scripts.predict "${ARGS[@]}"
 
-echo "Inference job finished at: $(date)"
+echo "Predicition job finished at: $(date)"
 echo "Results saved to: $OUT_DIR"
 echo "======================================"

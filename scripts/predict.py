@@ -76,11 +76,14 @@ def main():
             "top_k_labels": top_k_labels,
         })
 
-    # Save results
-    with open(args.out, "w") as f:
-        for res in results:
-            f.write(f"Query: {res['query_path']} (Label: {res['query_label']})\n")
-            for rank, (path, label) in enumerate(zip(res["top_k_paths"], res["top_k_labels"]), start=1):
-                f.write(f"  Rank {rank}: {path} (Label: {label})\n")
-                f.write("\n")
-        print(f"Predictions saved to {args.out}")
+    # Print results
+    for res in results:
+        print(f"Query: {res['query_path']} (Label: {res['query_label']})")
+        for rank, (path, label) in enumerate(zip(res["top_k_paths"], res["top_k_labels"]), start=1):
+            print(f"  Rank {rank}: {path} (Label: {label})")
+            print()
+    print(f"Predictions finished.")
+
+
+if __name__ == "__main__":
+    main()
