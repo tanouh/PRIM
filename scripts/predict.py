@@ -61,9 +61,9 @@ def main():
     for i in range(len(query_embs)):
         q_emb = query_embs[i].unsqueeze(0)  # Shape: (1, D)
         if args.distance == "cosine":
-            dists = pairwise_distance(q_emb, gallery_embs, metric="cosine").squeeze(0)
+            dists = pairwise_distance(q_emb, gallery_embs, mode="cosine").squeeze(0)
         else:
-            dists = pairwise_distance(q_emb, gallery_embs, metric="euclidean").squeeze(0)
+            dists = pairwise_distance(q_emb, gallery_embs, mode="euclidean").squeeze(0)
 
         top_k_indices = torch.topk(dists, k=args.top_k, largest=False).indices.numpy()
         top_k_paths = [gallery_paths[idx] for idx in top_k_indices]
