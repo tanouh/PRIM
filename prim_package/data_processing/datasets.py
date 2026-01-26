@@ -188,6 +188,86 @@ def load_pair_dfs(csv_paths: List[str]) -> pd.DataFrame:
     return df_all
 
 
+class SegmentedSingleImageDataset(SingleImageDataset):
+    """
+    Dataset for single-image inference with segmentation.
+    Loads segmented images instead of raw images.
+    
+    Expects df with columns: segmented_path (or image_path), label, split
+    """
+    def __getitem__(self, idx: int):
+        row = self.df.iloc[idx]
+        
+        # Use segmented_path if available, otherwise fall back to image_path
+        if 'segmented_path' in row:
+            img_path = self.root_dir / row["segmented_path"]
+        else:
+            img_path = self.root_dir / row["image_path"]
+        
+        label = row["label"]
+        
+        image = Image.open(img_path).convert("RGB")
+        
+        if self.transform is not None:
+            image = self.transform(image)
+        
+        if self.return_paths:
+            return image, label, str(img_path)
+        
+        return image, label
+
+
+class SegmentedPairImageDataset(PairImageDataset):
+    """
+    Dataset for pair-wise training (contrastive loss) with segmented images.
+    
+    Expects df with columns: image_a, image_b, label (and segmented_path_a, segmented_path_b if available)
+    """
+    def __getitem__(self, idx: int):
+        pair = self.pairs[idx]
+        
+        # Use segmented paths if available
+        img_a_path = pair.get('segmented_path_a') or pair['image_a']
+        img_b_path = pair.get('segmented_path_b') or pair['image_b']
+        
+        img_a = Image.open(img_a_path).convert("RGB")
+        img_b = Image.open(img_b_path).convert("RGB")
+        
+        if self.transform is not None:
+            img_a = self.transform(img_a)
+            img_b = self.transform(img_b)
+        
+        label = torch.tensor(pair['label'], dtype=torch.long)
+        
+        return img_a, img_b, label
+
+
+class SegmentedTripletImageDataset(TripletImageDataset):
+    """
+    Dataset for triplet training with segmented images.
+    
+    Expects df with: anchor_path, positive_path, negative_path (and segmented versions)
+    """
+    def __getitem__(self, idx: int):
+        triplet = self.triplets[idx]
+        
+        # Use segmented paths if available
+        anchor_path = triplet.get('segmented_anchor_path') or triplet['anchor_path']
+        positive_path = triplet.get('segmented_positive_path') or triplet['positive_path']
+        negative_path = triplet.get('segmented_negative_path') or triplet['negative_path']
+        
+        anchor = Image.open(anchor_path).convert("RGB")
+        positive = Image.open(positive_path).convert("RGB")
+        negative = Image.open(negative_path).convert("RGB")
+        
+        if self.transform is not None:
+            anchor = self.transform(anchor)
+            positive = self.transform(positive)
+            negative = self.transform(negative)
+        
+        return anchor, positive, negative
+
+
 def load_triplet_dfs(csv_paths: List[str]) -> pd.DataFrame:
     """Load and concatenate CSVs for triplet training."""
     dfs = [pd.read_csv(p) for p in csv_paths]
