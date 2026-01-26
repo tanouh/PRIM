@@ -4,6 +4,7 @@
 
 # Data folders
 data/
+old_data/
 outputs/
 
 # Environment folders

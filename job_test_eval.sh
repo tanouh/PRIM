@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=siamese_predict
+#SBATCH --job-name=siamese_test_eval
 #SBATCH --output=outputs/%x_%j/log/stdout.out
 #SBATCH --error=outputs/%x_%j/log/stderr.err
 #SBATCH --partition=P100
@@ -10,14 +10,14 @@
 
 set -euo pipefail
 
-echo "===== SLURM inference job context ====="
+echo "===== SLURM test evaluation job context ====="
 echo "Node: $(hostname)"
 echo "SLURM_JOB_ID: ${SLURM_JOB_ID:-}"
 echo "SLURM_JOB_NAME: ${SLURM_JOB_NAME:-}"
 echo "SLURM_CPUS_PER_TASK: ${SLURM_CPUS_PER_TASK:-}"
 echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-}"
 echo "Started at: $(date)"
-echo "======================================"
+echo "=============================================="
 
 # Ensure relative paths resolve from submit directory
 cd "${SLURM_SUBMIT_DIR:-.}"
@@ -28,16 +28,15 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 ROOT_DIR="${ROOT_DIR:-data}"
 CSV="${CSV:-csv/gallery_query.csv}"
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_669423/siamese.pt}"
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701317/siamese.pt}"
 EMBED_DIM="${EMBED_DIM:-256}"
 DISTANCE="${DISTANCE:-cosine}"
 
 BATCH_SIZE="${BATCH_SIZE:-64}"
 IM_SIZE="${IM_SIZE:-256}"
-NUM_WORKERS="${NUM_WORKERS:-}"
 
+THRESHOLD="${THRESHOLD:-0.7}"
 SAVE_DETAILS="${SAVE_DETAILS:-false}"
-THRESHOLD="${THRESHOLD:-0.5}"
 
 # --------------------------------------------------
 # Output directories
@@ -76,27 +75,6 @@ python -V || true
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 
 # --------------------------------------------------
-# Build argument list
-# --------------------------------------------------
-ARGS=()
-ARGS+=(--csv "$CSV")
-ARGS+=(--root_dir "$ROOT_DIR")
-ARGS+=(--model_path "$MODEL_PATH")
-ARGS+=(--embed_dim "$EMBED_DIM")
-ARGS+=(--distance "$DISTANCE")
-ARGS+=(--batch_size "$BATCH_SIZE")
-ARGS+=(--im_size "$IM_SIZE")
-ARGS+=(--out "$OUT_DIR/scores.csv")
-
-if [ -n "$NUM_WORKERS" ]; then
-  ARGS+=(--num_workers "$NUM_WORKERS")
-fi
-
-if [ "$SAVE_DETAILS" = "true" ]; then
-  ARGS+=(--save_details)
-fi
-
-# --------------------------------------------------
 # Safety checks
 # --------------------------------------------------
 if [ ! -f "$MODEL_PATH" ]; then
@@ -109,14 +87,67 @@ if [ ! -f "$CSV" ]; then
   exit 2
 fi
 
-echo "Running prediction with args:"
-echo "  python -m scripts.predict ${ARGS[*]}"
+# ==================================================
+# STEP 1: Run Prediction
+# ==================================================
+echo ""
+echo "===== STEP 1: Running Score Prediction ====="
+echo ""
 
-# --------------------------------------------------
-# Run prediction
-# --------------------------------------------------
-srun python -u -m scripts.predict "${ARGS[@]}"
+PREDICT_ARGS=()
+PREDICT_ARGS+=(--csv "$CSV")
+PREDICT_ARGS+=(--root_dir "$ROOT_DIR")
+PREDICT_ARGS+=(--model_path "$MODEL_PATH")
+PREDICT_ARGS+=(--embed_dim "$EMBED_DIM")
+PREDICT_ARGS+=(--distance "$DISTANCE")
+PREDICT_ARGS+=(--batch_size "$BATCH_SIZE")
+PREDICT_ARGS+=(--im_size "$IM_SIZE")
+PREDICT_ARGS+=(--out "$OUT_DIR/scores.csv")
 
-echo "Predicition job finished at: $(date)"
-echo "Results saved to: $OUT_DIR"
-echo "======================================"
+if [ "$SAVE_DETAILS" = "true" ]; then
+  PREDICT_ARGS+=(--save_details)
+fi
+
+echo "Running: python -m scripts.predict ${PREDICT_ARGS[*]}"
+srun python -u -m scripts.predict "${PREDICT_ARGS[@]}" || {
+  echo "ERROR: Prediction step failed" >&2
+  exit 1
+}
+
+echo "Prediction completed successfully"
+
+# ==================================================
+# STEP 2: Run Evaluation
+# ==================================================
+echo ""
+echo "===== STEP 2: Running Evaluation ====="
+echo ""
+
+EVAL_ARGS=()
+EVAL_ARGS+=(--scores_csv "$OUT_DIR/scores.csv")
+EVAL_ARGS+=(--threshold "$THRESHOLD")
+EVAL_ARGS+=(--out_dir "$OUT_DIR/evaluation")
+EVAL_ARGS+=(--distance_type "$DISTANCE")
+
+echo "Running: python -m scripts.evaluate_scores ${EVAL_ARGS[*]}"
+python -u -m scripts.evaluate_scores "${EVAL_ARGS[@]}" || {
+  echo "ERROR: Evaluation step failed" >&2
+  exit 1
+}
+
+echo "Evaluation completed successfully"
+
+# ==================================================
+# Summary
+# ==================================================
+echo ""
+echo "===== Test & Evaluation Job Summary ====="
+echo "Finished at: $(date)"
+echo "Results location: $OUT_DIR"
+echo ""
+echo "Output files:"
+echo "  - Scores: $OUT_DIR/scores.csv"
+echo "  - Metrics (JSON): $OUT_DIR/evaluation/metrics.json"
+echo "  - Results (CSV): $OUT_DIR/evaluation/evaluation_results.csv"
+echo "  - Summary (TXT): $OUT_DIR/evaluation/evaluation_summary.txt"
+echo "=============================================="
