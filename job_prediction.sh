@@ -36,7 +36,8 @@ BATCH_SIZE="${BATCH_SIZE:-64}"
 IM_SIZE="${IM_SIZE:-256}"
 NUM_WORKERS="${NUM_WORKERS:-}"
 
-TOPK="${TOPK:-10}"
+SAVE_DETAILS="${SAVE_DETAILS:-false}"
+THRESHOLD="${THRESHOLD:-0.5}"
 
 # --------------------------------------------------
 # Output directories
@@ -85,11 +86,14 @@ ARGS+=(--embed_dim "$EMBED_DIM")
 ARGS+=(--distance "$DISTANCE")
 ARGS+=(--batch_size "$BATCH_SIZE")
 ARGS+=(--im_size "$IM_SIZE")
-ARGS+=(--top_k "$TOPK")
-ARGS+=(--out "$OUT_DIR")
+ARGS+=(--out "$OUT_DIR/scores.csv")
 
 if [ -n "$NUM_WORKERS" ]; then
   ARGS+=(--num_workers "$NUM_WORKERS")
+fi
+
+if [ "$SAVE_DETAILS" = "true" ]; then
+  ARGS+=(--save_details)
 fi
 
 # --------------------------------------------------
