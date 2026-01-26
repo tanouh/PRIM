@@ -28,7 +28,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 ROOT_DIR="${ROOT_DIR:-data}"
 CSV="${CSV:-csv/gallery_query.csv}"
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_674729/contrastive_siamese.pt}"
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701441/siamese.pt}"
 EMBED_DIM="${EMBED_DIM:-256}"
 DISTANCE="${DISTANCE:-cosine}"
 
@@ -103,10 +103,6 @@ PREDICT_ARGS+=(--distance "$DISTANCE")
 PREDICT_ARGS+=(--batch_size "$BATCH_SIZE")
 PREDICT_ARGS+=(--im_size "$IM_SIZE")
 PREDICT_ARGS+=(--out "$OUT_DIR/scores.csv")
-
-if [ -n "$NUM_WORKERS" ]; then
-  PREDICT_ARGS+=(--num_workers "$NUM_WORKERS")
-fi
 
 if [ "$SAVE_DETAILS" = "true" ]; then
   PREDICT_ARGS+=(--save_details)
