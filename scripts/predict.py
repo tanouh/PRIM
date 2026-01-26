@@ -96,7 +96,6 @@ def main():
             avg_score = scores.mean().item()
             min_score = scores.min().item()
             max_score = scores.max().item()
-            std_score = scores.std().item()
             
             results.append({
                 "query_path": query_paths[i],
@@ -104,7 +103,6 @@ def main():
                 "avg_score": avg_score,
                 "min_score": min_score,
                 "max_score": max_score,
-                "std_score": std_score,
                 "num_gallery": len(gallery_embs),
                 "all_scores": scores.cpu().numpy() if args.save_details else None,
                 "gallery_paths": gallery_paths if args.save_details else None,
@@ -123,12 +121,12 @@ def main():
     with open(args.out, 'w', newline='') as f:
         if args.save_details:
             writer = csv.writer(f)
-            writer.writerow(["query_path", "query_label", "avg_score", "min_score", "max_score", "std_score", "num_gallery", "gallery_path", "gallery_label", "score", "prediction_time_seconds"])
+            writer.writerow(["query_path", "query_label", "avg_score", "min_score", "max_score", "num_gallery", "gallery_path", "gallery_label", "score", "prediction_time_seconds"])
             for res in results:
                 for gal_path, gal_label, score in zip(res["gallery_paths"], res["gallery_labels"], res["all_scores"]):
-                    writer.writerow([res["query_path"], res["query_label"], res["avg_score"], res["min_score"], res["max_score"], res["std_score"], res["num_gallery"], gal_path, gal_label, score, prediction_time])
+                    writer.writerow([res["query_path"], res["query_label"], res["avg_score"], res["min_score"], res["max_score"], res["num_gallery"], gal_path, gal_label, score, prediction_time])
         else:
-            writer = csv.DictWriter(f, fieldnames=["query_path", "query_label", "avg_score", "min_score", "max_score", "std_score", "num_gallery", "prediction_time_seconds"])
+            writer = csv.DictWriter(f, fieldnames=["query_path", "query_label", "avg_score", "min_score", "max_score", "num_gallery", "prediction_time_seconds"])
             writer.writeheader()
             for res in results:
                 writer.writerow({
@@ -137,7 +135,6 @@ def main():
                     "avg_score": res["avg_score"],
                     "min_score": res["min_score"],
                     "max_score": res["max_score"],
-                    "std_score": res["std_score"],
                     "num_gallery": res["num_gallery"],
                     "prediction_time_seconds": prediction_time,
                 })

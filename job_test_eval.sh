@@ -28,7 +28,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 ROOT_DIR="${ROOT_DIR:-data}"
 CSV="${CSV:-csv/gallery_query.csv}"
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701441/siamese.pt}"
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701317/siamese.pt}"
 EMBED_DIM="${EMBED_DIM:-256}"
 DISTANCE="${DISTANCE:-cosine}"
 
