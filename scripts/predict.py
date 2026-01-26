@@ -36,7 +36,7 @@ def main():
 
     # Load data
     df = load_single_df([args.csv])
-    query_df = get_split(df, "query").head(1)  # Take only the first row for single query
+    query_df = get_split(df, "query").query('label == "id_502"').head(1)  # Take only the first row for single query
     gallery_df = get_split(df, "gallery")
 
     transform = get_eval_transforms(im_size=args.im_size)

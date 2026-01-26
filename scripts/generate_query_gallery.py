@@ -92,7 +92,7 @@ def main():
 
         for img in gallery:
             rows.append([
-                str("data/"+ img.relative_to(root)),
+                str(img.relative_to(root)),
                 label,
                 "gallery",
             ])
