@@ -1,0 +1,11 @@
+image_path,label,split,segmented_path,segmentation_success
+data/drive/id_100_20251105_165619.jpg,id_100,gallery,data/segmented/data/drive/id_100_20251105_165619.jpg,True
+data/drive/id_100_20251105_165659.jpg,id_100,gallery,data/segmented/data/drive/id_100_20251105_165659.jpg,True
+data/drive/id_100_20251105_165626.jpg,id_100,gallery,data/segmented/data/drive/id_100_20251105_165626.jpg,False
+data/drive/id_100_20251105_165608.jpg,id_100,gallery,data/segmented/data/drive/id_100_20251105_165608.jpg,False
+data/drive/id_100_20251105_165654.jpg,id_100,gallery,data/segmented/data/drive/id_100_20251105_165654.jpg,True
+data/drive/id_100_20251105_165600.jpg,id_100,query,data/segmented/data/drive/id_100_20251105_165600.jpg,True
+data/drive/id_100_20251105_165650.jpg,id_100,query,data/segmented/data/drive/id_100_20251105_165650.jpg,True
+data/drive/id_100_20251105_165644.jpg,id_100,query,data/segmented/data/drive/id_100_20251105_165644.jpg,True
+data/drive/id_100_20251105_165639.jpg,id_100,query,data/segmented/data/drive/id_100_20251105_165639.jpg,False
+data/drive/id_100_20251105_165633.jpg,id_100,query,data/segmented/data/drive/id_100_20251105_165633.jpg,False
