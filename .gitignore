@@ -12,3 +12,6 @@ outputs/
 
 # Python cache folders
 *__pycache__/
+
+# model files
+*.pt
