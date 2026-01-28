@@ -25,17 +25,17 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 # --------------------------------------------------
 # Configuration (override via env vars)
 # --------------------------------------------------
-ROOT_DIR="${ROOT_DIR:-data}"
-CSV="${CSV:-csv/gallery_query.csv}"
+ROOT_DIR="${ROOT_DIR:-.}"
+CSV="${CSV:-csv/gallery_query_segmented.csv}"
 
-MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_701317/siamese.pt}"
+MODEL_PATH="${MODEL_PATH:-outputs/siamese_train_718011/siamese.pt}"
 EMBED_DIM="${EMBED_DIM:-256}"
 DISTANCE="${DISTANCE:-cosine}"
 
 BATCH_SIZE="${BATCH_SIZE:-64}"
 IM_SIZE="${IM_SIZE:-256}"
 
-THRESHOLD="${THRESHOLD:-0.7}"
+THRESHOLD="${THRESHOLD:-0.1}"
 SAVE_DETAILS="${SAVE_DETAILS:-false}"
 
 # --------------------------------------------------
@@ -47,8 +47,14 @@ mkdir -p "$OUT_DIR/log"
 # --------------------------------------------------
 # Conda environment
 # --------------------------------------------------
-CONDA_ENV="${CONDA_ENV:-cuda118}"
+# Activate conda environment (default to 'cuda118-gpu' if CONDA_ENV not set)
+CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"
+
 if [ -n "$CONDA_ENV" ]; then
+  # Temporarily disable -u to allow conda init scripts to work
+  set +u
+  
+  # Try common conda init paths
   for script in \
     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
     "${HOME}/miniconda3/etc/profile.d/conda.sh" \
@@ -60,11 +66,36 @@ if [ -n "$CONDA_ENV" ]; then
   done
 
   if command -v conda >/dev/null 2>&1; then
-    conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env"
+    conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env '$CONDA_ENV', proceeding with system python"
   else
-    echo "[WARN] conda not found; using system python"
+    echo "[WARN] conda not found; cannot activate env '$CONDA_ENV'"
   fi
+  
+  # Re-enable -u for remaining script execution
+  set -u
 fi
+
+
+
+
+# CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"
+# if [ -n "$CONDA_ENV" ]; then
+#   for script in \
+#     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
+#     "${HOME}/miniconda3/etc/profile.d/conda.sh" \
+#     "/opt/conda/etc/profile.d/conda.sh"; do
+#     if [ -f "$script" ]; then
+#       source "$script"
+#       break
+#     fi
+#   done
+
+#   if command -v conda >/dev/null 2>&1; then
+#     conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env"
+#   else
+#     echo "[WARN] conda not found; using system python"
+#   fi
+# fi
 
 # --------------------------------------------------
 # Diagnostics

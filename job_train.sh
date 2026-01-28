@@ -24,15 +24,15 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 
 # Configuration (override by exporting env vars before sbatch)
 # Example: OBJECTIVE=triplet EPOCHS=50 BATCH_SIZE=64 LR=3e-4 sbatch job_train.sh
-OBJECTIVE="${OBJECTIVE:-triplet}"   # contrastive | triplet
+OBJECTIVE="${OBJECTIVE:-contrastive}"   # contrastive | triplet
 ROOT_DIR="${ROOT_DIR:-.}"
 
 # Choose default CSV based on objective if not provided
 if [ -z "${CSV:-}" ]; then
   if [ "$OBJECTIVE" = "contrastive" ]; then
-    CSV="csv/tampar_pairs_ssl.csv"
+    CSV="csv/pirs_segmented.csv"
   else
-    CSV="csv/tampar_triplets_ssl.csv"
+    CSV="csv/triplets_segmented.csv"
   fi
 fi
 
@@ -41,7 +41,7 @@ BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-1e-4}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-1e-4}"
 EMBED_DIM="${EMBED_DIM:-256}"
-DISTANCE="${DISTANCE:-euclidean}"          # cosine | euclidean
+DISTANCE="${DISTANCE:-cosine}"          # cosine | euclidean
 MARGIN="${MARGIN:-1.0}"
 IM_SIZE="${IM_SIZE:-256}"
 PIN_MEMORY="${PIN_MEMORY:-1}"           # 1=True, 0=False
@@ -72,9 +72,12 @@ VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
 VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 
 # Activate conda environment (default to 'cuda118' if CONDA_ENV not set)
-CONDA_ENV="${CONDA_ENV:-cuda118}"
+CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"
 
 if [ -n "$CONDA_ENV" ]; then
+  # Temporarily disable -u to allow conda init scripts to work
+  set +u
+  
   # Try common conda init paths
   for script in \
     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
@@ -91,6 +94,9 @@ if [ -n "$CONDA_ENV" ]; then
   else
     echo "[WARN] conda not found; cannot activate env '$CONDA_ENV'"
   fi
+  
+  # Re-enable -u for remaining script execution
+  set -u
 fi
 
 # Diagnostics

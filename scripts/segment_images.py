@@ -155,7 +155,7 @@ def main():
     # Load input CSV
     print(f"Loading image list from {args.csv}...")
     df = pd.read_csv(args.csv)
-    df = df[df["label"] == "id_100"]
+    # df = df[df["label"] == "id_100"]
     
     # Limit for testing
     if args.limit:
