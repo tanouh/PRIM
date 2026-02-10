@@ -20,7 +20,7 @@ def parse_args():
         "Build gallery/query CSV using id_<something> identity rule"
     )
     p.add_argument("--root_dir", default="./data/", help="Root data directory (e.g. data/)")
-    p.add_argument("--out_csv", default="./csv/gallery_query.csv")
+    p.add_argument("--out_csv", default="./csv/gallery_query_tampar.csv")
     p.add_argument("--seed", type=int, default=42)
 
     # Split config per ID
@@ -92,14 +92,14 @@ def main():
 
         for img in gallery:
             rows.append([
-                str(img.relative_to(root)),
+                str(img),
                 label,
                 "gallery",
             ])
 
         for img in query:
             rows.append([
-                str(img.relative_to(root)),
+                str(img),
                 label,
                 "query",
             ])

@@ -10,7 +10,7 @@ import time
 def main():
     parser = argparse.ArgumentParser(description="Extract OCR text from images for supply chain verification")
     parser.add_argument("--csv", required=True, help="CSV with image_path,label,split columns (e.g., gallery_query.csv)")
-    parser.add_argument("--root_dir", default="data", help="Root directory for relative image paths")
+    parser.add_argument("--root_dir", default=".", help="Root directory for relative image paths")
     parser.add_argument("--out", default="csv/ocr_texts.csv", help="Output CSV: image_path, label, split, ocr_text")
     parser.add_argument("--gpu", action="store_true", default=True, help="Use GPU for OCR")
     args = parser.parse_args()

@@ -30,9 +30,9 @@ ROOT_DIR="${ROOT_DIR:-.}"
 # Choose default CSV based on objective if not provided
 if [ -z "${CSV:-}" ]; then
   if [ "$OBJECTIVE" = "contrastive" ]; then
-    CSV="csv/tampar_pairs_ssl.csv"
+    CSV="csv/tampar_pairs.csv"
   else
-    CSV="csv/tampar_triplets_ssl.csv"
+    CSV="csv/tampar_triplets.csv"
   fi
 fi
 
@@ -58,7 +58,7 @@ SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
 #   VAL_PAIRS_CSV_OUT=/path/to/file.csv
 #   VAL_THRESHOLD=0.5
 VAL_PAIRS_CSV_OUT="${VAL_PAIRS_CSV_OUT:-$OUT_DIR/val_pair_predictions.csv}"
-VAL_THRESHOLD="${VAL_THRESHOLD:-}"
+VAL_THRESHOLD="${VAL_THRESHOLD:-0.2}"
 
 # Validation outputs (for triplet objective)
 # Can be overridden via environment variables:
@@ -67,12 +67,12 @@ VAL_THRESHOLD="${VAL_THRESHOLD:-}"
 #   VAL_AN_THRESHOLD=0.5
 #   VAL_DELTA_THRESHOLD=0.2
 VAL_TRIPLETS_CSV_OUT="${VAL_TRIPLETS_CSV_OUT:-$OUT_DIR/val_triplets_predictions.csv}"
-VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-}"
+VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-0.2}"
 VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
 VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 
 # Activate conda environment (default to 'cuda118' if CONDA_ENV not set)
-CONDA_ENV="${CONDA_ENV:-cuda118}"
+CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"
 
 if [ -n "$CONDA_ENV" ]; then
   # Try common conda init paths

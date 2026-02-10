@@ -9,8 +9,8 @@ from typing import Dict, List, Tuple, Optional
 
 SEED = 1337
 TRAIN_RATIO = 0.9
-DATA_ROOT = Path('data/TAMPAR/test')
-OUTPUT_CSV = Path('tampar_triplets_ssl.csv')
+DATA_ROOT = Path('data/TAMPAR/')
+OUTPUT_CSV = Path('csv/tampar_triplets.csv')
 IMG_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
 
 def find_images(root: Path) -> List[Path]:

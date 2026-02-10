@@ -6,6 +6,17 @@ import os
 import pandas as pd
 from typing import Dict
 
+# Get the repo root directory (parent of scripts/)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def normalize_path(path: str) -> str:
+    """Normalize path to be relative to repo root."""
+    path = os.path.normpath(path)
+    # If absolute, make it relative to repo root
+    if os.path.isabs(path):
+        path = os.path.relpath(path, REPO_ROOT)
+    return path
+
 def load_ocr_lookup(ocr_path: str) -> Dict[str, str]:
     """Creates a dictionary mapping filepaths to text."""
     if not os.path.exists(ocr_path):
@@ -15,10 +26,10 @@ def load_ocr_lookup(ocr_path: str) -> Dict[str, str]:
     df = pd.read_csv(ocr_path)
     
     # Create dict: normalized_path -> text
-    # We normalize paths (abspath) to ensure matches even if relative paths differ
+    # We normalize paths to be relative to repo root
     return pd.Series(
-        df.text_content.fillna("").values, 
-        index=df.filepath.apply(os.path.abspath)
+        df["ocr_text"].fillna("").values,
+        index=df["image_path"].apply(normalize_path)
     ).to_dict()
 
 def process_triplets(triplet_csvs, ocr_lookup, root_dir, out_path):
@@ -38,24 +49,24 @@ def process_triplets(triplet_csvs, ocr_lookup, root_dir, out_path):
         p_col = get_col(["path_pos", "p_image_path", "positive_path"])
         n_col = get_col(["path_neg", "n_image_path", "negative_path"])
         
-        # 2. Resolve & Normalize Paths
+        # 2. Resolve & Normalize Paths (relative to repo root)
         def resolve(p):
             p_str = str(p)
             if root_dir and not os.path.isabs(p_str):
                 p_str = os.path.join(root_dir, p_str)
-            return os.path.abspath(p_str)
+            return normalize_path(p_str)
 
         # Create temporary columns for lookup
-        df['abs_anchor'] = df[a_col].apply(resolve)
-        df['abs_pos']    = df[p_col].apply(resolve)
-        df['abs_neg']    = df[n_col].apply(resolve)
+        df['norm_anchor'] = df[a_col].apply(resolve)
+        df['norm_pos']    = df[p_col].apply(resolve)
+        df['norm_neg']    = df[n_col].apply(resolve)
         
         # 3. Inject Text using the lookup dict
         # Use .map() for speed. fillna("") handles missing images gracefully.
         print("Injecting text data...")
-        df['text_anchor'] = df['abs_anchor'].map(ocr_lookup).fillna("")
-        df['text_pos']    = df['abs_pos'].map(ocr_lookup).fillna("")
-        df['text_neg']    = df['abs_neg'].map(ocr_lookup).fillna("")
+        df['text_anchor'] = df['norm_anchor'].map(ocr_lookup).fillna("")
+        df['text_pos']    = df['norm_pos'].map(ocr_lookup).fillna("")
+        df['text_neg']    = df['norm_neg'].map(ocr_lookup).fillna("")
         
         # Check hit rate
         missing = (df['text_anchor'] == "").sum()
@@ -67,15 +78,14 @@ def process_triplets(triplet_csvs, ocr_lookup, root_dir, out_path):
             df["split"] = "train"
         df["split"] = df["split"].astype(str).str.lower()
         
-        # Keep original paths for readability, or use absolute ones if you prefer
-        # Here mapping standard columns to the resolved absolute paths
+        # Keep paths relative to repo root for portability
         out_df = pd.DataFrame({
             "split": df["split"],
-            "path_anchor": df['abs_anchor'],
+            "path_anchor": df['norm_anchor'],
             "text_anchor": df['text_anchor'],
-            "path_pos": df['abs_pos'],
+            "path_pos": df['norm_pos'],
             "text_pos": df['text_pos'],
-            "path_neg": df['abs_neg'],
+            "path_neg": df['norm_neg'],
             "text_neg": df['text_neg']
         })
         
