@@ -14,10 +14,10 @@ from prim_package import (
     load_triplet_dfs,
     get_split,
     MultimodalSiameseNet,
-    train_contrastive,
-    validate_contrastive,
-    train_triplet,
-    validate_triplet,
+    train_contrastive_multimodal,
+    validate_contrastive_multimodal,
+    train_triplet_multimodal,
+    validate_triplet_multimodal,
 )
 from prim_package.data_processing.transforms import get_train_transforms, get_eval_transforms
 
@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--objective", choices=["contrastive", "triplet"], default="contrastive")
     p.add_argument("--csv", nargs="+", required=True, help="One or more CSV paths")
     p.add_argument("--root_dir", default="", help="Optional root prefix to prepend to relative paths in CSV")
-    p.add_argument("--embed_dim", type=int, default=256)
+    p.add_argument("--visual_embed_dim", type=int, default=256)
     p.add_argument("--pretrained", type=int, default=1, help="1=True, 0=False for encoder pretrained weights")
     p.add_argument("--distance", choices=["cosine", "euclidean"], default="cosine")
     p.add_argument("--margin", type=float, default=1.0, help="Margin for loss (0.3 typical for triplet)")
@@ -182,7 +182,7 @@ def main():
     # --- UPDATED MODEL INIT ---
     print(f"Initializing Multimodal Model with text backbone: {args.tokenizer}")
     model = MultimodalSiameseNet(
-        embed_dim=args.embed_dim, 
+        visual_embed_dim=args.visual_embed_dim, 
         pretrained=bool(args.pretrained)
     ).to(device)
     
@@ -192,10 +192,10 @@ def main():
     print(f"Objective: {args.objective}")
     for ep in range(args.epochs):
         if args.objective == "contrastive":
-            train_loss = train_contrastive(
+            train_loss = train_contrastive_multimodal(
                 model, train_loader, optimizer, device, margin=args.margin, distance=args.distance
             )
-            val_stats = validate_contrastive(
+            val_stats = validate_contrastive_multimodal(
                 model,
                 val_loader,
                 device,
@@ -211,10 +211,10 @@ def main():
             )
         else:
             # Triplet
-            train_loss = train_triplet(
+            train_loss = train_triplet_multimodal(
                 model, train_loader, optimizer, device, margin=args.margin, distance=args.distance
             )
-            val_stats = validate_triplet(
+            val_stats = validate_triplet_multimodal(
                 model,
                 val_loader,
                 device,

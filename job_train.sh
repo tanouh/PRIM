@@ -75,6 +75,9 @@ VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"
 
 if [ -n "$CONDA_ENV" ]; then
+  # Temporarily disable -u to allow conda init scripts to work
+  set +u
+  
   # Try common conda init paths
   for script in \
     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
@@ -91,7 +94,11 @@ if [ -n "$CONDA_ENV" ]; then
   else
     echo "[WARN] conda not found; cannot activate env '$CONDA_ENV'"
   fi
+  
+  # Re-enable -u for remaining script execution
+  set -u
 fi
+
 
 # Diagnostics
 nvidia-smi || true
@@ -114,7 +121,7 @@ ARGS+=(--epochs "$EPOCHS")
 ARGS+=(--batch_size "$BATCH_SIZE")
 ARGS+=(--lr "$LR")
 ARGS+=(--weight_decay "$WEIGHT_DECAY")
-ARGS+=(--embed_dim "$EMBED_DIM")
+ARGS+=(--visual_embed_dim "$EMBED_DIM")
 ARGS+=(--distance "$DISTANCE")
 ARGS+=(--margin "$MARGIN")
 ARGS+=(--im_size "$IM_SIZE")

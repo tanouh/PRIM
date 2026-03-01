@@ -13,7 +13,7 @@ from transformers import AutoTokenizer, AutoModel
 class TextEncoder(nn.Module):
     """
     Text encoder using DistilBERT pre-trained model.
-    Maps OCR text → semantic embedding (384D)
+    Maps OCR text → semantic embedding (hidden_size D)
     """
     def __init__(self, model_name="distilbert-base-uncased", max_length=512):
         super().__init__()
@@ -28,32 +28,39 @@ class TextEncoder(nn.Module):
         for param in self.bert.parameters():
             param.requires_grad = False
         
-        self.output_dim = 384  # DistilBERT hidden size
+        # Get hidden size dynamically from model config
+        self.output_dim = self.bert.config.hidden_size  # 768 for base, 384 for small
     
     def forward(self, texts):
         """
         Args:
-            texts: List of strings or single string
+            texts: List of strings, single string, or pre-tokenized dict with 'input_ids' and 'attention_mask'
         
         Returns:
             embeddings: Tensor of shape (batch_size, 384)
         """
-        # Handle single string
-        if isinstance(texts, str):
-            texts = [texts]
-        
-        # Tokenize
-        encoded = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=self.max_length,
-            return_tensors="pt"
-        )
-        
-        # Move to same device as model
         device = next(self.bert.parameters()).device
-        encoded = {k: v.to(device) for k, v in encoded.items()}
+        
+        # Check if texts is already tokenized (dict with input_ids)
+        if isinstance(texts, dict) and 'input_ids' in texts:
+            # Already tokenized - just ensure on correct device
+            encoded = {k: v.to(device) for k, v in texts.items()}
+        else:
+            # Handle single string
+            if isinstance(texts, str):
+                texts = [texts]
+            
+            # Tokenize
+            encoded = self.tokenizer(
+                texts,
+                padding=True,
+                truncation=True,
+                max_length=self.max_length,
+                return_tensors="pt"
+            )
+            
+            # Move to same device as model
+            encoded = {k: v.to(device) for k, v in encoded.items()}
         
         # Get BERT output
         with torch.no_grad():

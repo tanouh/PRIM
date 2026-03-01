@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
-from transformers import AutoModel, AutoConfig
+from transformers import AutoModel
 
 class EmbeddingNet(nn.Module):
     """
