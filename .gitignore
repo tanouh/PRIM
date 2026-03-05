@@ -15,3 +15,5 @@ outputs/
 
 # model files
 *.pt
+
+analysis/
