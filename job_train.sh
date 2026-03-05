@@ -30,18 +30,18 @@ ROOT_DIR="${ROOT_DIR:-.}"
 # Choose default CSV based on objective if not provided
 if [ -z "${CSV:-}" ]; then
   if [ "$OBJECTIVE" = "contrastive" ]; then
-    CSV="csv/pirs_segmented.csv"
+    CSV="csv/pairs_segmented.csv"
   else
     CSV="csv/triplets_segmented.csv"
   fi
 fi
 
-EPOCHS="${EPOCHS:-10}"
+EPOCHS="${EPOCHS:-20}"
 BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-1e-4}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-1e-4}"
 EMBED_DIM="${EMBED_DIM:-256}"
-DISTANCE="${DISTANCE:-cosine}"          # cosine | euclidean
+DISTANCE="${DISTANCE:-euclidean}"          # cosine | euclidean
 MARGIN="${MARGIN:-1.0}"
 IM_SIZE="${IM_SIZE:-256}"
 PIN_MEMORY="${PIN_MEMORY:-1}"           # 1=True, 0=False
@@ -58,7 +58,7 @@ SAVE_PATH="${SAVE_PATH:-$OUT_DIR/siamese.pt}"
 #   VAL_PAIRS_CSV_OUT=/path/to/file.csv
 #   VAL_THRESHOLD=0.5
 VAL_PAIRS_CSV_OUT="${VAL_PAIRS_CSV_OUT:-$OUT_DIR/val_pair_predictions.csv}"
-VAL_THRESHOLD="${VAL_THRESHOLD:-}"
+VAL_THRESHOLD="${VAL_THRESHOLD:-0.2}"
 
 # Validation outputs (for triplet objective)
 # Can be overridden via environment variables:
@@ -67,9 +67,9 @@ VAL_THRESHOLD="${VAL_THRESHOLD:-}"
 #   VAL_AN_THRESHOLD=0.5
 #   VAL_DELTA_THRESHOLD=0.2
 VAL_TRIPLETS_CSV_OUT="${VAL_TRIPLETS_CSV_OUT:-$OUT_DIR/val_triplets_predictions.csv}"
-VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-}"
-VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
-VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
+VAL_AP_THRESHOLD="${VAL_AP_THRESHOLD:-0.2}"
+VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-0.2}"
+VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-0.2}"
 
 # Activate conda environment (default to 'cuda118' if CONDA_ENV not set)
 CONDA_ENV="${CONDA_ENV:-cuda118-gpu}"

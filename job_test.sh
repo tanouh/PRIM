@@ -58,8 +58,11 @@ VAL_AN_THRESHOLD="${VAL_AN_THRESHOLD:-}"
 VAL_DELTA_THRESHOLD="${VAL_DELTA_THRESHOLD:-}"
 
 # Conda environment (optional)
-CONDA_ENV="${CONDA_ENV:-cuda118}"
 if [ -n "$CONDA_ENV" ]; then
+  # Temporarily disable -u to allow conda init scripts to work
+  set +u
+  
+  # Try common conda init paths
   for script in \
     "${HOME}/anaconda3/etc/profile.d/conda.sh" \
     "${HOME}/miniconda3/etc/profile.d/conda.sh" \
@@ -73,8 +76,11 @@ if [ -n "$CONDA_ENV" ]; then
   if command -v conda >/dev/null 2>&1; then
     conda activate "$CONDA_ENV" || echo "[WARN] Failed to activate conda env '$CONDA_ENV', proceeding with system python"
   else
-    echo "[WARN] conda not found; proceeding with system python"
+    echo "[WARN] conda not found; cannot activate env '$CONDA_ENV'"
   fi
+  
+  # Re-enable -u for remaining script execution
+  set -u
 fi
 
 # Diagnostics
